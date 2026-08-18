@@ -39,7 +39,7 @@ jobs:
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
             set -e
-            cd ~/deploy-wizard-backend
+            cd ~/repos/deploy-wizard-backend
             git pull origin main
             npm ci
             npm run build
