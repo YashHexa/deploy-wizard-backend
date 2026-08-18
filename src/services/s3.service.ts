@@ -22,6 +22,15 @@ function buildS3Client(region: string): S3Client {
 
 export type BucketAvailability = "available" | "owned-by-you" | "taken";
 
+export class BucketNameTakenError extends Error {
+  constructor(bucketName: string) {
+    super(
+      `The bucket name "${bucketName}" is already taken. S3 bucket names are global across every AWS account, not just yours — pick a different name and try again.`
+    );
+    this.name = "BucketNameTakenError";
+  }
+}
+
 export async function checkBucketAvailability(
   bucketName: string,
   region: string
@@ -44,14 +53,21 @@ export async function checkBucketAvailability(
 
 export async function createBucket(bucketName: string, region: string): Promise<void> {
   const client = buildS3Client(region);
-  await client.send(
-    new CreateBucketCommand({
-      Bucket: bucketName,
-      // us-east-1 rejects an explicit LocationConstraint matching itself.
-      CreateBucketConfiguration:
-        region === "us-east-1" ? undefined : { LocationConstraint: region as any },
-    })
-  );
+  try {
+    await client.send(
+      new CreateBucketCommand({
+        Bucket: bucketName,
+        // us-east-1 rejects an explicit LocationConstraint matching itself.
+        CreateBucketConfiguration:
+          region === "us-east-1" ? undefined : { LocationConstraint: region as any },
+      })
+    );
+  } catch (err: any) {
+    if (err?.name === "BucketAlreadyExists" || err?.name === "BucketAlreadyOwnedByYou") {
+      throw new BucketNameTakenError(bucketName);
+    }
+    throw err;
+  }
 }
 
 export async function setPublicAccessBlock(

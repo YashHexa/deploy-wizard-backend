@@ -11,6 +11,7 @@ import {
   enableStaticWebsiteHosting,
   getWebsiteEndpoint,
   uploadZipToBucket,
+  BucketNameTakenError,
 } from "../services/s3.service";
 import {
   createDistributionForBucket,
@@ -90,13 +91,26 @@ router.post("/create-bucket", async (req, res) => {
     if (err instanceof MissingCredentialsError) {
       return res.status(500).json({ error: err.message, steps });
     }
+    if (err instanceof BucketNameTakenError) {
+      steps.push({ step: "failed", ok: false, message: err.message });
+      const response: CreateBucketResponse = {
+        steps,
+        websiteEndpoint: null,
+        success: false,
+        error: err.message,
+        code: "BUCKET_NAME_TAKEN",
+      };
+      return res.status(409).json(response);
+    }
     console.error(err);
-    steps.push({
-      step: "failed",
-      ok: false,
-      message: err?.message ?? "Unknown error while configuring the bucket.",
-    });
-    const response: CreateBucketResponse = { steps, websiteEndpoint: null, success: false };
+    const message = err?.message ?? "Unknown error while configuring the bucket.";
+    steps.push({ step: "failed", ok: false, message });
+    const response: CreateBucketResponse = {
+      steps,
+      websiteEndpoint: null,
+      success: false,
+      error: message,
+    };
     return res.status(502).json(response);
   }
 });

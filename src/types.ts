@@ -34,6 +34,8 @@ export interface CreateBucketResponse {
   steps: StepResult[];
   websiteEndpoint: string | null;
   success: boolean;
+  error?: string;
+  code?: string;
 }
 
 export interface CreateCloudFrontRequest {
