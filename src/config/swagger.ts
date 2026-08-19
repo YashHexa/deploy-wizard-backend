@@ -220,6 +220,15 @@ const options: swaggerJsdoc.Options = {
             status: { type: "string", nullable: true },
           },
         },
+        CloudFrontStatusResponse: {
+          type: "object",
+          properties: {
+            distributionId: { type: "string" },
+            domainName: { type: "string" },
+            status: { type: "string" },
+            deployed: { type: "boolean" },
+          },
+        },
         UploadBuildResponse: {
           type: "object",
           properties: {

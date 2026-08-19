@@ -16,10 +16,12 @@ import {
 import {
   createDistributionForBucket,
   findDistributionForBucket,
+  getDistributionStatus,
 } from "../services/cloudfront.service";
 import {
   CreateBucketRequest,
   CreateBucketResponse,
+  CloudFrontStatusResponse,
   CreateCloudFrontRequest,
   CreateCloudFrontResponse,
   FindCloudFrontResponse,
@@ -259,6 +261,57 @@ router.get("/find-cloudfront", async (req, res) => {
     console.error(err);
     return res.status(502).json({
       error: err?.message ?? "Could not look up CloudFront distributions.",
+    });
+  }
+});
+
+/**
+ * @openapi
+ * /api/deploy/cloudfront-status/{distributionId}:
+ *   get:
+ *     summary: Check whether a CloudFront distribution has finished deploying
+ *     tags: [Deploy]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: distributionId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Current distribution status.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/CloudFrontStatusResponse'
+ *       400:
+ *         description: Missing distribution id.
+ *       401:
+ *         description: Missing or invalid access token.
+ */
+router.get("/cloudfront-status/:distributionId", async (req, res) => {
+  const distributionId = String(req.params.distributionId ?? "").trim();
+
+  if (!distributionId) {
+    return res.status(400).json({ error: "A distribution id is required." });
+  }
+
+  try {
+    const result = await getDistributionStatus(distributionId);
+    const response: CloudFrontStatusResponse = {
+      ...result,
+      deployed: result.status === "Deployed",
+    };
+    return res.json(response);
+  } catch (err: any) {
+    if (err instanceof MissingCredentialsError) {
+      return res.status(500).json({ error: err.message });
+    }
+    console.error(err);
+    return res.status(502).json({
+      error: err?.message ?? "Could not check the CloudFront distribution status.",
     });
   }
 });

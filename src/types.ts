@@ -84,6 +84,13 @@ export interface FindCloudFrontResponse {
   status: string | null;
 }
 
+export interface CloudFrontStatusResponse {
+  distributionId: string;
+  domainName: string;
+  status: string;
+  deployed: boolean;
+}
+
 export interface UploadBuildResponse {
   uploadedCount: number;
   failedFiles: string[];

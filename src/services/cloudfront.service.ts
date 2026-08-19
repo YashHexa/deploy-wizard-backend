@@ -1,6 +1,7 @@
 import {
   CloudFrontClient,
   CreateDistributionCommand,
+  GetDistributionCommand,
   ListDistributionsCommand,
 } from "@aws-sdk/client-cloudfront";
 import { getAwsCredentials } from "../config/env";
@@ -107,5 +108,29 @@ export async function findDistributionForBucket(
     distributionId: match.Id,
     domainName: match.DomainName,
     status: match.Status ?? "Unknown",
+  };
+}
+
+/**
+ * Fetches the current status of a distribution so callers can poll for
+ * "Deployed" before telling the user the CloudFront link is ready.
+ */
+export async function getDistributionStatus(
+  distributionId: string
+): Promise<CreateDistributionResult> {
+  const client = buildCloudFrontClient();
+  const result = await client.send(
+    new GetDistributionCommand({ Id: distributionId })
+  );
+
+  const distribution = result.Distribution;
+  if (!distribution || !distribution.Id || !distribution.DomainName) {
+    throw new Error("CloudFront did not return a distribution.");
+  }
+
+  return {
+    distributionId: distribution.Id,
+    domainName: distribution.DomainName,
+    status: distribution.Status ?? "Unknown",
   };
 }
