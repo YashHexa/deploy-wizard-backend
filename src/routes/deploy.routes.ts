@@ -35,6 +35,38 @@ const upload = multer({
   limits: { fileSize: 200 * 1024 * 1024 },
 });
 
+/**
+ * @openapi
+ * /api/deploy/create-bucket:
+ *   post:
+ *     summary: Create and configure an S3 bucket for static website hosting
+ *     tags: [Deploy]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/CreateBucketRequest'
+ *     responses:
+ *       200:
+ *         description: Bucket created and configured.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/CreateBucketResponse'
+ *       400:
+ *         description: Invalid bucket name, region, or missing public access block settings.
+ *       401:
+ *         description: Missing or invalid access token.
+ *       409:
+ *         description: Bucket name is already taken.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/CreateBucketResponse'
+ */
 router.post("/create-bucket", async (req, res) => {
   const body = req.body as Partial<CreateBucketRequest>;
   const bucketName = (body.bucketName ?? "").trim().toLowerCase();
@@ -115,6 +147,32 @@ router.post("/create-bucket", async (req, res) => {
   }
 });
 
+/**
+ * @openapi
+ * /api/deploy/create-cloudfront:
+ *   post:
+ *     summary: Create a CloudFront distribution in front of a bucket
+ *     tags: [Deploy]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/CreateCloudFrontRequest'
+ *     responses:
+ *       200:
+ *         description: Distribution created.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/CreateCloudFrontResponse'
+ *       400:
+ *         description: Invalid bucket name or region.
+ *       401:
+ *         description: Missing or invalid access token.
+ */
 router.post("/create-cloudfront", async (req, res) => {
   const body = req.body as Partial<CreateCloudFrontRequest>;
   const bucketName = (body.bucketName ?? "").trim().toLowerCase();
@@ -142,6 +200,37 @@ router.post("/create-cloudfront", async (req, res) => {
   }
 });
 
+/**
+ * @openapi
+ * /api/deploy/find-cloudfront:
+ *   get:
+ *     summary: Find an existing CloudFront distribution for a bucket
+ *     tags: [Deploy]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: bucketName
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: region
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Matching distribution, or nulls if none found.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/FindCloudFrontResponse'
+ *       400:
+ *         description: Invalid bucket name or region.
+ *       401:
+ *         description: Missing or invalid access token.
+ */
 router.get("/find-cloudfront", async (req, res) => {
   const bucketName = String(req.query.bucketName ?? "")
     .trim()
@@ -174,6 +263,41 @@ router.get("/find-cloudfront", async (req, res) => {
   }
 });
 
+/**
+ * @openapi
+ * /api/deploy/upload-build:
+ *   post:
+ *     summary: Upload a zipped build to the target bucket
+ *     tags: [Deploy]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             required: [bucketName, region, file]
+ *             properties:
+ *               bucketName:
+ *                 type: string
+ *               region:
+ *                 type: string
+ *               file:
+ *                 type: string
+ *                 format: binary
+ *     responses:
+ *       200:
+ *         description: Upload result.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/UploadBuildResponse'
+ *       400:
+ *         description: Invalid bucket name, region, or missing file.
+ *       401:
+ *         description: Missing or invalid access token.
+ */
 router.post("/upload-build", upload.single("file"), async (req, res) => {
   const bucketName = String(req.body.bucketName ?? "")
     .trim()
@@ -205,6 +329,32 @@ router.post("/upload-build", upload.single("file"), async (req, res) => {
   }
 });
 
+/**
+ * @openapi
+ * /api/deploy/generate-yaml:
+ *   post:
+ *     summary: Generate a GitHub Actions workflow YAML for CI/CD deployment
+ *     tags: [Deploy]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/GenerateYamlRequest'
+ *     responses:
+ *       200:
+ *         description: Generated YAML.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/GenerateYamlResponse'
+ *       400:
+ *         description: bucketName, region, and distributionId are required.
+ *       401:
+ *         description: Missing or invalid access token.
+ */
 router.post("/generate-yaml", (req, res) => {
   const body = req.body as Partial<GenerateYamlRequest>;
   const bucketName = (body.bucketName ?? "").trim();

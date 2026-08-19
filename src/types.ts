@@ -88,3 +88,74 @@ export interface UploadBuildResponse {
   uploadedCount: number;
   failedFiles: string[];
 }
+
+export interface SignUpRequest {
+  email: string;
+  password: string;
+  name?: string;
+}
+
+export interface SignUpResponse {
+  userSub: string;
+  userConfirmed: boolean;
+  message: string;
+}
+
+export interface VerifyOtpRequest {
+  email: string;
+  code: string;
+}
+
+export interface VerifyOtpResponse {
+  message: string;
+}
+
+export interface ResendOtpRequest {
+  email: string;
+}
+
+export interface ResendOtpResponse {
+  message: string;
+}
+
+export interface LoginRequest {
+  email: string;
+  password: string;
+}
+
+export interface LoginResponse {
+  accessToken: string;
+  idToken: string;
+  refreshToken: string;
+  expiresIn: number;
+}
+
+export interface RefreshTokenRequest {
+  email: string;
+  refreshToken: string;
+}
+
+export interface RefreshTokenResponse {
+  accessToken: string;
+  idToken: string;
+  refreshToken: string;
+  expiresIn: number;
+}
+
+export interface ForgotPasswordRequest {
+  email: string;
+}
+
+export interface ForgotPasswordResponse {
+  message: string;
+}
+
+export interface ConfirmForgotPasswordRequest {
+  email: string;
+  code: string;
+  newPassword: string;
+}
+
+export interface ConfirmForgotPasswordResponse {
+  message: string;
+}

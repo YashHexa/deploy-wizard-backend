@@ -18,6 +18,30 @@ import {
 
 const router = Router();
 
+/**
+ * @openapi
+ * /api/bucket/validate-name:
+ *   post:
+ *     summary: Validate an S3 bucket name and check availability
+ *     tags: [Bucket]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/ValidateBucketNameRequest'
+ *     responses:
+ *       200:
+ *         description: Validation result.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ValidateBucketNameResponse'
+ *       401:
+ *         description: Missing or invalid access token.
+ */
 router.post("/validate-name", async (req, res) => {
   const body = req.body as Partial<ValidateBucketNameRequest>;
   const bucketName = (body.bucketName ?? "").trim().toLowerCase();
@@ -67,6 +91,24 @@ router.post("/validate-name", async (req, res) => {
   }
 });
 
+/**
+ * @openapi
+ * /api/bucket/list:
+ *   get:
+ *     summary: List S3 buckets in the AWS account
+ *     tags: [Bucket]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: List of buckets.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ListBucketsResponse'
+ *       401:
+ *         description: Missing or invalid access token.
+ */
 router.get("/list", async (_req, res) => {
   try {
     const buckets = await listBuckets();
@@ -81,6 +123,30 @@ router.get("/list", async (_req, res) => {
   }
 });
 
+/**
+ * @openapi
+ * /api/bucket/{name}/region:
+ *   get:
+ *     summary: Get the AWS region a bucket lives in
+ *     tags: [Bucket]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: name
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Bucket region.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/GetBucketRegionResponse'
+ *       401:
+ *         description: Missing or invalid access token.
+ */
 router.get("/:name/region", async (req, res) => {
   const bucketName = req.params.name;
   try {
@@ -96,6 +162,37 @@ router.get("/:name/region", async (req, res) => {
   }
 });
 
+/**
+ * @openapi
+ * /api/bucket/website-endpoint:
+ *   get:
+ *     summary: Compute the static website endpoint URL for a bucket/region
+ *     tags: [Bucket]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: bucketName
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: region
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Website endpoint.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/WebsiteEndpointResponse'
+ *       400:
+ *         description: bucketName and a valid region are required.
+ *       401:
+ *         description: Missing or invalid access token.
+ */
 router.get("/website-endpoint", (req, res) => {
   const bucketName = String(req.query.bucketName ?? "");
   const region = String(req.query.region ?? "");

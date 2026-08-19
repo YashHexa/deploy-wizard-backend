@@ -23,3 +23,23 @@ export function getAwsCredentials() {
 
   return { accessKeyId, secretAccessKey };
 }
+
+export const COGNITO_REGION = process.env.COGNITO_REGION || "ap-south-1";
+export const COGNITO_USER_POOL_ID = process.env.COGNITO_USER_POOL_ID ?? "";
+export const COGNITO_CLIENT_ID = process.env.COGNITO_CLIENT_ID ?? "";
+export const COGNITO_CLIENT_SECRET = process.env.COGNITO_CLIENT_SECRET ?? "";
+
+export function getCognitoConfig() {
+  if (!COGNITO_USER_POOL_ID || !COGNITO_CLIENT_ID) {
+    throw new Error(
+      "Cognito is not configured. Set COGNITO_USER_POOL_ID and COGNITO_CLIENT_ID in backend/.env."
+    );
+  }
+
+  return {
+    region: COGNITO_REGION,
+    userPoolId: COGNITO_USER_POOL_ID,
+    clientId: COGNITO_CLIENT_ID,
+    clientSecret: COGNITO_CLIENT_SECRET,
+  };
+}
