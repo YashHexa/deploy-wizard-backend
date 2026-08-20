@@ -24,6 +24,10 @@ export function getAwsCredentials() {
   return { accessKeyId, secretAccessKey };
 }
 
+export const BASE_DOMAIN = process.env.BASE_DOMAIN || "hexacoder.co";
+export const ROUTE53_HOSTED_ZONE_ID =
+  process.env.ROUTE53_HOSTED_ZONE_ID || "Z01855462MMA24J2T5IDY";
+
 export const COGNITO_REGION = process.env.COGNITO_REGION || "ap-south-1";
 export const COGNITO_USER_POOL_ID = process.env.COGNITO_USER_POOL_ID ?? "";
 export const COGNITO_CLIENT_ID = process.env.COGNITO_CLIENT_ID ?? "";

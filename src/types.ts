@@ -91,6 +91,22 @@ export interface CloudFrontStatusResponse {
   deployed: boolean;
 }
 
+export interface ConnectDomainRequest {
+  subdomain: string;
+  distributionId: string;
+}
+
+export interface ConnectDomainResponse {
+  domain: string;
+  distributionId: string;
+  distributionDomainName: string;
+  distributionStatus: string;
+  certificateArn: string;
+  hostedZoneId: string;
+  route53ChangeId: string;
+  route53ChangeStatus: string;
+}
+
 export interface UploadBuildResponse {
   uploadedCount: number;
   failedFiles: string[];

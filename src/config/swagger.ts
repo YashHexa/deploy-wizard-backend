@@ -229,6 +229,30 @@ const options: swaggerJsdoc.Options = {
             deployed: { type: "boolean" },
           },
         },
+        ConnectDomainRequest: {
+          type: "object",
+          required: ["subdomain", "distributionId"],
+          properties: {
+            subdomain: {
+              type: "string",
+              description: 'Subdomain label to create under hexacoder.co, e.g. "myapp".',
+            },
+            distributionId: { type: "string" },
+          },
+        },
+        ConnectDomainResponse: {
+          type: "object",
+          properties: {
+            domain: { type: "string" },
+            distributionId: { type: "string" },
+            distributionDomainName: { type: "string" },
+            distributionStatus: { type: "string" },
+            certificateArn: { type: "string" },
+            hostedZoneId: { type: "string" },
+            route53ChangeId: { type: "string" },
+            route53ChangeStatus: { type: "string" },
+          },
+        },
         UploadBuildResponse: {
           type: "object",
           properties: {

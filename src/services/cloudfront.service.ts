@@ -2,7 +2,9 @@ import {
   CloudFrontClient,
   CreateDistributionCommand,
   GetDistributionCommand,
+  GetDistributionConfigCommand,
   ListDistributionsCommand,
+  UpdateDistributionCommand,
 } from "@aws-sdk/client-cloudfront";
 import { getAwsCredentials } from "../config/env";
 import { getS3WebsiteEndpoint } from "../utils/regions";
@@ -132,5 +134,58 @@ export async function getDistributionStatus(
     distributionId: distribution.Id,
     domainName: distribution.DomainName,
     status: distribution.Status ?? "Unknown",
+  };
+}
+
+/**
+ * Attaches a custom domain (CNAME) and its matching ACM certificate to an
+ * existing distribution. Idempotent - re-running for a domain that's already
+ * attached just leaves the alias list unchanged.
+ */
+export async function addDomainToDistribution(
+  distributionId: string,
+  domain: string,
+  certificateArn: string
+): Promise<CreateDistributionResult> {
+  const client = buildCloudFrontClient();
+
+  const current = await client.send(
+    new GetDistributionConfigCommand({ Id: distributionId })
+  );
+  const config = current.DistributionConfig;
+  const etag = current.ETag;
+  if (!config || !etag) {
+    throw new Error("Could not read the current CloudFront distribution configuration.");
+  }
+
+  const existingAliases = config.Aliases?.Items ?? [];
+  const aliases = existingAliases.includes(domain)
+    ? existingAliases
+    : [...existingAliases, domain];
+
+  config.Aliases = { Quantity: aliases.length, Items: aliases };
+  config.ViewerCertificate = {
+    ACMCertificateArn: certificateArn,
+    SSLSupportMethod: "sni-only",
+    MinimumProtocolVersion: "TLSv1.2_2021",
+  };
+
+  const result = await client.send(
+    new UpdateDistributionCommand({
+      Id: distributionId,
+      IfMatch: etag,
+      DistributionConfig: config,
+    })
+  );
+
+  const distribution = result.Distribution;
+  if (!distribution || !distribution.Id || !distribution.DomainName) {
+    throw new Error("CloudFront did not return an updated distribution.");
+  }
+
+  return {
+    distributionId: distribution.Id,
+    domainName: distribution.DomainName,
+    status: distribution.Status ?? "InProgress",
   };
 }

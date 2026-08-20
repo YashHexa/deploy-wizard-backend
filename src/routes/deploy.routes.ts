@@ -3,7 +3,7 @@ import multer from "multer";
 import { validateBucketNameFormat } from "../utils/validateBucketName";
 import { isSupportedRegion } from "../utils/regions";
 import { generateWorkflowYaml } from "../utils/yamlTemplate";
-import { MissingCredentialsError } from "../config/env";
+import { BASE_DOMAIN, MissingCredentialsError, ROUTE53_HOSTED_ZONE_ID } from "../config/env";
 import {
   createBucket,
   setPublicAccessBlock,
@@ -14,14 +14,19 @@ import {
   BucketNameTakenError,
 } from "../services/s3.service";
 import {
+  addDomainToDistribution,
   createDistributionForBucket,
   findDistributionForBucket,
   getDistributionStatus,
 } from "../services/cloudfront.service";
+import { findCertificateArn } from "../services/acm.service";
+import { upsertCloudFrontAliasRecord } from "../services/route53.service";
 import {
   CreateBucketRequest,
   CreateBucketResponse,
   CloudFrontStatusResponse,
+  ConnectDomainRequest,
+  ConnectDomainResponse,
   CreateCloudFrontRequest,
   CreateCloudFrontResponse,
   FindCloudFrontResponse,
@@ -30,6 +35,10 @@ import {
   StepResult,
   UploadBuildResponse,
 } from "../types";
+
+// Single DNS label, or dot-separated labels for a nested subdomain (e.g. "app" or "app.dev").
+const SUBDOMAIN_REGEX =
+  /^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?(\.[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?)*$/;
 
 const router = Router();
 const upload = multer({
@@ -312,6 +321,78 @@ router.get("/cloudfront-status/:distributionId", async (req, res) => {
     console.error(err);
     return res.status(502).json({
       error: err?.message ?? "Could not check the CloudFront distribution status.",
+    });
+  }
+});
+
+/**
+ * @openapi
+ * /api/deploy/connect-domain:
+ *   post:
+ *     summary: Create a hexacoder.co subdomain in Route 53 and attach it (with the *.hexacoder.co ACM certificate) to a CloudFront distribution
+ *     tags: [Deploy]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/ConnectDomainRequest'
+ *     responses:
+ *       200:
+ *         description: Domain connected.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ConnectDomainResponse'
+ *       400:
+ *         description: Invalid subdomain or missing distribution id.
+ *       401:
+ *         description: Missing or invalid access token.
+ */
+router.post("/connect-domain", async (req, res) => {
+  const body = req.body as Partial<ConnectDomainRequest>;
+  const subdomain = (body.subdomain ?? "").trim().toLowerCase();
+  const distributionId = (body.distributionId ?? "").trim();
+
+  if (!SUBDOMAIN_REGEX.test(subdomain)) {
+    return res.status(400).json({ error: "A valid subdomain is required, e.g. \"myapp\"." });
+  }
+  if (!distributionId) {
+    return res.status(400).json({ error: "A distribution id is required." });
+  }
+
+  const domain = `${subdomain}.${BASE_DOMAIN}`;
+  const wildcardDomain = `*.${BASE_DOMAIN}`;
+
+  try {
+    const certificateArn = await findCertificateArn(wildcardDomain);
+    const distribution = await addDomainToDistribution(distributionId, domain, certificateArn);
+    const route53Result = await upsertCloudFrontAliasRecord(
+      ROUTE53_HOSTED_ZONE_ID,
+      domain,
+      distribution.domainName
+    );
+
+    const response: ConnectDomainResponse = {
+      domain,
+      distributionId: distribution.distributionId,
+      distributionDomainName: distribution.domainName,
+      distributionStatus: distribution.status,
+      certificateArn,
+      hostedZoneId: ROUTE53_HOSTED_ZONE_ID,
+      route53ChangeId: route53Result.changeId,
+      route53ChangeStatus: route53Result.status,
+    };
+    return res.json(response);
+  } catch (err: any) {
+    if (err instanceof MissingCredentialsError) {
+      return res.status(500).json({ error: err.message });
+    }
+    console.error(err);
+    return res.status(502).json({
+      error: err?.message ?? "Could not connect the domain.",
     });
   }
 });
