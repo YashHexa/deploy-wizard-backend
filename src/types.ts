@@ -5,6 +5,15 @@ export interface PublicAccessBlockSettings {
   restrictPublicBuckets: boolean;
 }
 
+export interface RegionOption {
+  code: string;
+  label: string;
+}
+
+export interface ListRegionsResponse {
+  regions: RegionOption[];
+}
+
 export interface ValidateBucketNameRequest {
   bucketName: string;
   region: string;

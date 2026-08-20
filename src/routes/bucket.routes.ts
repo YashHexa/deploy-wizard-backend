@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { validateBucketNameFormat } from "../utils/validateBucketName";
-import { isSupportedRegion } from "../utils/regions";
+import { isSupportedRegion, SUPPORTED_REGIONS } from "../utils/regions";
 import {
   checkBucketAvailability,
   listBuckets,
@@ -14,9 +14,31 @@ import {
   ListBucketsResponse,
   GetBucketRegionResponse,
   WebsiteEndpointResponse,
+  ListRegionsResponse,
 } from "../types";
 
 const router = Router();
+
+/**
+ * @openapi
+ * /api/bucket/regions:
+ *   get:
+ *     summary: List the AWS regions available for bucket creation
+ *     tags: [Bucket]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Supported regions.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ListRegionsResponse'
+ */
+router.get("/regions", (_req, res) => {
+  const response: ListRegionsResponse = { regions: SUPPORTED_REGIONS };
+  return res.json(response);
+});
 
 /**
  * @openapi

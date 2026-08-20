@@ -126,6 +126,19 @@ const options: swaggerJsdoc.Options = {
             restrictPublicBuckets: { type: "boolean" },
           },
         },
+        RegionOption: {
+          type: "object",
+          properties: {
+            code: { type: "string" },
+            label: { type: "string" },
+          },
+        },
+        ListRegionsResponse: {
+          type: "object",
+          properties: {
+            regions: { type: "array", items: { $ref: "#/components/schemas/RegionOption" } },
+          },
+        },
         ValidateBucketNameRequest: {
           type: "object",
           required: ["bucketName", "region"],
